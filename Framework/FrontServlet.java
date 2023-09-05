@@ -41,6 +41,21 @@ public class FrontServlet extends HttpServlet {
     Map<String, Mapping> mappingUrls;
     Map<String, Object> singletons;
 
+    private static final Map<String, Class<?>> wrapperClassMap;
+    static {
+        wrapperClassMap = new HashMap<>();
+        // Add mappings for primitive types and their wrapper classes
+        wrapperClassMap.put("int", Integer.class);
+        wrapperClassMap.put("char", Character.class);
+        wrapperClassMap.put("boolean", Boolean.class);
+        wrapperClassMap.put("byte", Byte.class);
+        wrapperClassMap.put("short", Short.class);
+        wrapperClassMap.put("long", Long.class);
+        wrapperClassMap.put("float", Float.class);
+        wrapperClassMap.put("double", Double.class);
+        wrapperClassMap.put("String", String.class);
+    }
+
     public void init() throws ServletException {
         try {
             this.mappingUrls = new HashMap<>();
@@ -119,7 +134,7 @@ public class FrontServlet extends HttpServlet {
                 // Set data in object
                 for (Field field : this.getAllFields(obj)) {
                     // Initialiser les attibuts de l'objet
-                    if (cls.isAnnotationPresent(Scope.class)) {
+                    if (!field.getType().isPrimitive() && cls.isAnnotationPresent(Scope.class)) {
                         field.setAccessible(true);
                         field.set(obj, null);
                     }
@@ -262,7 +277,7 @@ public class FrontServlet extends HttpServlet {
                 : (type.getSimpleName().equals("Date")) ? convertToDate(value, type) 
                 : (type.getSimpleName().equals("Timestamp")) ? convertToTimestamp(value)
                 : (isBddObjectType(type)) ? convertToBddObject(type, value)
-                : type.getConstructor(String.class).newInstance(value);
+                : wrapperClassMap.get(type.getSimpleName()).getConstructor(String.class).newInstance(value);
     }
 
     public void doPost(HttpServletRequest request, HttpServletResponse response)
