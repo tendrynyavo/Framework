@@ -286,11 +286,7 @@ public class FrontServlet extends HttpServlet {
     }
 
     public static boolean isBddObjectType(Class<?> c) {
-        while (!c.isAssignableFrom(Object.class)) {
-            if (c.isAssignableFrom(BddObject.class)) return true;
-            c = c.getSuperclass();
-        }
-        return false;
+        return BddObject.class.isAssignableFrom(c);
     }
 
     public BddObject convertToBddObject(Class<?> type, String value) throws Exception {
