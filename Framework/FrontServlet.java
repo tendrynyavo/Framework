@@ -101,11 +101,11 @@ public class FrontServlet extends HttpServlet {
             Class<?> cls = Class.forName(mapping.getClassName()); // Class of this mapping
             
             Object obj = this.getObjectSingleton(cls); // Get the singleton in HashMap
-
+            
             // Set parameters to object
             Method method = mapping.getDeclaredMethod();
             Object methodValue = null;
-
+            
             // Adding Session in controller
             if (method.isAnnotationPresent(session.class)) {
                 HttpSession session = request.getSession();
@@ -138,7 +138,7 @@ public class FrontServlet extends HttpServlet {
                         field.setAccessible(true);
                         field.set(obj, null);
                     }
-
+                    
                     Class<?> type = (field.isAnnotationPresent(Setter.class)) ? field.getAnnotation(Setter.class).value() : field.getType();
                     Object value = (type.isAssignableFrom(FileUpload.class)) ? toFileUpload(request, field.getName()) : cast(type, request.getParameter(field.getName()));
                     if (value != null) {
@@ -146,26 +146,26 @@ public class FrontServlet extends HttpServlet {
                         setter.invoke(obj, value);
                     }
                 }
-    
+                
                 // If the method have parameters set them in each paramaters
                 Parameter[] parameters = method.getParameters();
                 Object[] values = new Object[parameters.length];
                 for (int i = 0; i < parameters.length; i++) {
                     values[i] = cast(parameters[i].getType(), request.getParameter(parameters[i].getName()));
                 }
-             
+                
                 // Execute controller Method
                 methodValue = method.invoke(obj, values);
-
+                
             } catch (Exception e) {
                 String urlError = method.getAnnotation(url.class).error();
                 if (urlError.isEmpty()) throw e;
+                if (!this.mappingUrls.containsKey(urlError)) throw new ServletException("URL \"" + urlError + "\" not found");
                 mapping = this.mappingUrls.get(urlError);
                 cls = Class.forName(mapping.getClassName());
                 obj = this.getObjectSingleton(cls);
                 // Execute controller Method for manage Exception
                 methodValue = mapping.getDeclaredMethod().invoke(obj, e);
-            
             }
 
             PrintWriter out = response.getWriter();
