@@ -202,7 +202,16 @@ public class FrontServlet extends HttpServlet {
                     }
                 }
             } else {
-                out.println((method.isAnnotationPresent(restAPI.class)) ? createGson().toJson(methodValue) : (method.isAnnotationPresent(csv.class)) ? convertToCsv((Object[]) methodValue, method) : methodValue.toString());
+                String value = "";
+                if (method.isAnnotationPresent(restAPI.class)) {
+                    response.setContentType("application/json");
+                    value = createGson().toJson(methodValue);
+                } else if (method.isAnnotationPresent(csv.class)) {
+                    value = convertToCsv((Object[]) methodValue, method);
+                } else {
+                    value = methodValue.toString();
+                }
+                out.println(value);
             }
         } catch(Exception e) {
             throw new ServletException(e);
