@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.util.Map.Entry;
 import etu2070.framework.ModelView;
-import javax.servlet.annotation.MultipartConfig;
+import jakarta.servlet.annotation.MultipartConfig;
 import etu2070.annotation.url;
 import etu2070.annotation.csv;
 import etu2070.annotation.Scope;
@@ -26,8 +26,8 @@ import etu2070.annotation.restAPI;
 import etu2070.annotation.session;
 import etu2070.framework.FileUpload;
 import etu2070.framework.Mapping;
-import javax.servlet.*;
-import javax.servlet.http.*;
+import jakarta.servlet.*;
+import jakarta.servlet.http.*;
 import java.util.Collection;
 import java.util.Enumeration;
 import com.google.gson.Gson;
@@ -132,7 +132,8 @@ public class FrontServlet extends HttpServlet {
                 }
 
                 // Set data in object
-                for (Field field : this.getAllFields(obj)) {
+                Field[] fields = (isBddObjectType(obj.getClass())) ? this.getAllFields((BddObject) obj) : this.getAllFields(obj);
+                for (Field field : fields) {
                     // Initialiser les attibuts de l'objet
                     if (!field.getType().isPrimitive() && cls.isAnnotationPresent(Scope.class)) {
                         field.setAccessible(true);
@@ -204,7 +205,10 @@ public class FrontServlet extends HttpServlet {
             } else {
                 String value = "";
                 if (method.isAnnotationPresent(restAPI.class)) {
-                    response.setContentType("application/json");
+                    setAccessControlHeaders(response);
+                    response.setCharacterEncoding("UTF-8");
+                    response.setContentType("application/json; charset=utf-8");
+                    out = response.getWriter();
                     value = createGson().toJson(methodValue);
                 } else if (method.isAnnotationPresent(csv.class)) {
                     value = convertToCsv((Object[]) methodValue, method);
@@ -216,6 +220,19 @@ public class FrontServlet extends HttpServlet {
         } catch(Exception e) {
             throw new ServletException(e);
         }
+    }
+
+    private void setAccessControlHeaders(HttpServletResponse resp) {
+        resp.setHeader("Access-Control-Allow-Origin", "http://localhost:" + this.getServletConfig().getInitParameter("origin-api"));
+        resp.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS, POST, PUT");
+        resp.setHeader("Access-Control-Allow-Credentials", "true");
+    }
+
+    @Override
+    protected void doOptions(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        setAccessControlHeaders(resp);
+        resp.setStatus(HttpServletResponse.SC_OK);
     }
 
     public Object getObjectSingleton(Class<?> cls) throws Exception {
@@ -299,14 +316,23 @@ public class FrontServlet extends HttpServlet {
         processRequest(request, response);
     }
 
-    public List<Field> getAllFields(Object obj) throws Exception {
+    public Field[] getAllFields(Object obj) throws Exception {
         Class<?> c = obj.getClass();
         List<Field> columns = new ArrayList<>();
         while (c != null) {
             for (Field field : c.getDeclaredFields()) columns.add(field);
             c = c.getSuperclass();
         }
-        return columns;
+        return columns.toArray(new Field[0]);
+    }
+
+    public Field[] getAllFields(BddObject obj) throws Exception {
+        Column[] columns = obj.getAllColumns().toArray(new Column[0]);
+        Field[] fields = new Field[columns.length];
+        for (int i = 0; i < fields.length; i++) {
+            fields[i] = columns[i].getField();
+        }
+        return fields;
     }
 
     public static boolean isBddObjectType(Class<?> c) {
