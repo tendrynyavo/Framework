@@ -46,13 +46,21 @@ public class FrontServlet extends HttpServlet {
         wrapperClassMap = new HashMap<>();
         // Add mappings for primitive types and their wrapper classes
         wrapperClassMap.put("int", Integer.class);
+        wrapperClassMap.put("Integer", Integer.class);
         wrapperClassMap.put("char", Character.class);
+        wrapperClassMap.put("Character", Character.class);
         wrapperClassMap.put("boolean", Boolean.class);
+        wrapperClassMap.put("Boolean", Boolean.class);
         wrapperClassMap.put("byte", Byte.class);
+        wrapperClassMap.put("Byte", Byte.class);
         wrapperClassMap.put("short", Short.class);
+        wrapperClassMap.put("Short", Short.class);
         wrapperClassMap.put("long", Long.class);
+        wrapperClassMap.put("Long", Long.class);
         wrapperClassMap.put("float", Float.class);
+        wrapperClassMap.put("Float", Float.class);
         wrapperClassMap.put("double", Double.class);
+        wrapperClassMap.put("Double", Double.class);
         wrapperClassMap.put("String", String.class);
     }
 
