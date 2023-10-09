@@ -231,7 +231,7 @@ public class FrontServlet extends HttpServlet {
     }
 
     private void setAccessControlHeaders(HttpServletResponse resp) {
-        resp.setHeader("Access-Control-Allow-Origin", "http://localhost:" + this.getServletConfig().getInitParameter("origin-api"));
+        resp.setHeader("Access-Control-Allow-Origin", this.getServletConfig().getInitParameter("origin-api"));
         resp.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS, POST, PUT");
         resp.setHeader("Access-Control-Allow-Credentials", "true");
     }
