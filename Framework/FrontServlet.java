@@ -12,6 +12,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.List;
+import java.lang.reflect.Array;
 import java.util.Map;
 import java.util.ArrayList;
 import java.util.Map.Entry;
@@ -98,6 +99,12 @@ public class FrontServlet extends HttpServlet {
 
     public void processRequest(HttpServletRequest request, HttpServletResponse response)
         throws IOException, ServletException {
+        
+        // Accross origin for web service
+        response.setHeader("Access-Control-Allow-Origin", this.getServletConfig().getInitParameter("origin-api"));
+        response.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS, POST, PUT");
+        response.setHeader("Access-Control-Allow-Credentials", "true");
+        
         try {
             String url = request.getRequestURI().substring(request.getContextPath().length() + 1); // Get URL
             
@@ -149,7 +156,12 @@ public class FrontServlet extends HttpServlet {
                     }
                     
                     Class<?> type = (field.isAnnotationPresent(Setter.class)) ? field.getAnnotation(Setter.class).value() : field.getType();
-                    Object value = (type.isAssignableFrom(FileUpload.class)) ? toFileUpload(request, field.getName()) : cast(type, request.getParameter(field.getName()));
+                    Object value = null;
+                    if (type.isArray()) {
+                        value = cast(type, request.getParameterValues(field.getName()));
+                    } else {
+                        value = (type.isAssignableFrom(FileUpload.class)) ? toFileUpload(request, field.getName()) : cast(type, request.getParameter(field.getName()));
+                    }
                     if (value != null) {
                         Method setter = cls.getMethod("set" + field.getName().substring(0, 1).toUpperCase() + field.getName().substring(1), type);
                         setter.invoke(obj, value);
@@ -204,6 +216,7 @@ public class FrontServlet extends HttpServlet {
                 if (view.isJson()) {
                     out.println(createGson().toJson(view.getData()));
                 } else {
+                    response.setContentType("text/html;charste=UTF-8");
                     if (view.getView() != null) {
                         request.getRequestDispatcher("/" + view.getView()).forward(request, response);
                     } else  {
@@ -213,9 +226,8 @@ public class FrontServlet extends HttpServlet {
             } else {
                 String value = "";
                 if (method.isAnnotationPresent(restAPI.class)) {
-                    setAccessControlHeaders(response);
                     response.setCharacterEncoding("UTF-8");
-                    response.setContentType("application/json; charset=utf-8");
+                    response.setHeader("Content-Type", "application/json; charset=UTF-8");
                     out = response.getWriter();
                     value = createGson().toJson(methodValue);
                 } else if (method.isAnnotationPresent(csv.class)) {
@@ -230,17 +242,21 @@ public class FrontServlet extends HttpServlet {
         }
     }
 
-    private void setAccessControlHeaders(HttpServletResponse resp) {
-        resp.setHeader("Access-Control-Allow-Origin", this.getServletConfig().getInitParameter("origin-api"));
-        resp.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS, POST, PUT");
-        resp.setHeader("Access-Control-Allow-Credentials", "true");
-    }
-
-    @Override
-    protected void doOptions(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        setAccessControlHeaders(resp);
-        resp.setStatus(HttpServletResponse.SC_OK);
+    public Object cast(Class<?> cls, String[] values) throws Exception {
+        if (values == null) return null;
+        BddObject[] objects = null;
+        Class<?> type = cls.getComponentType();
+        if (isBddObjectType(type)) {
+            objects = (BddObject[]) Array.newInstance(type, values.length);
+            for (int i = 0; i < values.length; i++) {
+                BddObject object = (BddObject) type.getConstructor().newInstance();
+                Column primaryKey = object.getFieldPrimaryKey();
+                Method setter = object.getClass().getMethod("set" + primaryKey.getField().getName().substring(0, 1).toUpperCase()  + primaryKey.getField().getName().substring(1), primaryKey.getField().getType());
+                setter.invoke(object, values[i]);
+                objects[i] = object;
+            }
+        }
+        return objects;
     }
 
     public Object getObjectSingleton(Class<?> cls) throws Exception {
