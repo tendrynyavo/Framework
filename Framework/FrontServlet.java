@@ -138,11 +138,17 @@ public class FrontServlet extends HttpServlet {
                 if (method.isAnnotationPresent(auth.class)) {
                     HttpSession session = request.getSession();
                     Object value = session.getAttribute(this.getServletConfig().getInitParameter("sessionName"));
-                    if (value == null) throw new Exception("Authentification required");
+                    if (value == null) {
+                        throw new Exception("Authentification required");
+                    }
                     String profil = (String) session.getAttribute(this.getServletConfig().getInitParameter("sessionProfil"));
                     if (!method.getAnnotation(auth.class).value().isEmpty()) {
-                        if (profil == null) throw new Exception("Authentification profil is required");
-                        if (!profil.equals(method.getAnnotation(auth.class).value())) throw new Exception("Authentification " + method.getAnnotation(auth.class).value() + " is required");
+                        if (profil == null) {
+                            throw new Exception("Authentification profil is required");
+                        }
+                        if (!profil.equals(method.getAnnotation(auth.class).value())) {
+                            throw new Exception("Authentification " + method.getAnnotation(auth.class).value() + " is required");
+                        }
                     }
                 }
 
